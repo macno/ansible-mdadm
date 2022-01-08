@@ -144,24 +144,23 @@
   lineinfile:
     dest: "{{ mdadm_conf }}"
     regexp: "^ARRAY /dev/{{ item.name }}"
-    line: "ARRAY /dev/{{ item.name }}"
     state: "absent"
   with_items: '{{ mdadm_arrays }}'
   when: >
         item.state == "absent"
 
 # Updates initramfs archives in /boot
-- name: arrays | Updating Initramfs
+- name: arrays | Updating Initramfs (Debian)
   command: "{{ update_initramfs }}"
   when: array_removed.changed and ansible_facts.os_family == "Debian"
 
 # Updates initramfs archives in /boot
-- name: arrays | Updating Initramfs
+- name: arrays | Updating Initramfs (RedHat)
   command: "mv /boot/initramfs-$(uname -r).img /boot/initramfs-$(uname -r)-backup.img"
   when: array_removed.changed and ansible_facts.os_family == "RedHat"
 
 # Updates initramfs archives in /boot
-- name: arrays | Updating Initramfs
+- name: arrays | Updating Initramfs (RedHat)
   command: "dracut /boot/initramfs-$(uname -r).img $(uname -r)"
   when: array_removed.changed and ansible_facts.os_family == "RedHat"
 
