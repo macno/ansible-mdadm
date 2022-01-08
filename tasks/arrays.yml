@@ -133,7 +133,7 @@
 - name: arrays | Updating {{ mdadm_conf }}
   lineinfile:
     dest: "{{ mdadm_conf }}"
-    regexp: "^{{ item }}"
+    regexp: "^{{ item | regexp_replace('^(ARRAY \\S*)(.*)', '\\1' ) }}"
     line: "{{ item }}"
     state: "present"
   with_items: '{{ array_details.stdout_lines }}'
