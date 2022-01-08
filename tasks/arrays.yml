@@ -13,10 +13,13 @@
 - name: arrays | Creating Array(s)
   shell: "yes | mdadm --create /dev/{{ item.name }} --level={{ item.level }} --raid-devices={{ item.devices|count }} {{ item.devices| join (' ') }}"
   register: "array_created"
-  with_items: '{{ mdadm_arrays }}'
+  loop: '{{ mdadm_arrays }}'
+  loop_control:
+    index_var: index
+    loop_var: item
   when: >
         item.state|lower == "present" and
-        array_check.results[0].rc != 0
+        array_check.results[index].rc != 0
 
 # Updates initramfs archives in /boot
 - name: arrays | Updating Initramfs
@@ -70,40 +73,48 @@
 - name: arrays | Stopping Array(s)
   command: "mdadm --stop /dev/{{ item.name }}"
   register: "array_stopped"
-  with_items: '{{ mdadm_arrays }}'
+  loop: '{{ mdadm_arrays }}'
+  loop_control:
+    index_var: index
+    loop_var: item
   when: >
         item.state|lower == "absent" and
-        array_check.results[0].rc == 0
+        array_check.results[index].rc == 0
 
 # Removing raid arrays
 - name: arrays | Removing Array(s)
   command: "mdadm --remove /dev/{{ item.name }}"
   register: "array_removed"
-  with_items: '{{ mdadm_arrays }}'
+  loop: '{{ mdadm_arrays }}'
+  loop_control:
+    index_var: index
+    loop_var: item
   when: >
         item.state|lower == "absent" and
-        array_check.results[0].rc == 0
+        array_check.results[index].rc == 0
 
 # Zeroing out the disk devices which were part of the raid array
 - name: arrays | Zeroing Out Array Devices
   command: "mdadm --zero-superblock {{ item.1 }}"
-  with_subelements:
-    - '{{ mdadm_arrays }}'
-    - devices
+  loop: "{{ mdadm_arrays | subelements('devices') }}"
+  loop_control:
+    index_var: index
+    loop_var: item
   when: >
         item.0.state|lower == "absent" and
-        array_check.results[0].rc == 0 and
+        array_check.results[index].rc == 0 and
         array_removed.changed
 
 # Wiping out the disk devices which were part of the raid array
 - name: arrays | Wiping Out Array Devices
   command: "wipefs -af {{ item.1 }}"
-  with_subelements:
-    - '{{ mdadm_arrays }}'
-    - devices
+  loop: "{{ mdadm_arrays | subelements('devices') }}"
+  loop_control:
+    index_var: index
+    loop_var: item
   when: >
         item.0.state|lower == "absent" and
-        array_check.results[0].rc == 0 and
+        array_check.results[index].rc == 0 and
         array_removed.changed
 
 - name: arrays | Ensure {{ mdadm_conf }}'s directory exists
